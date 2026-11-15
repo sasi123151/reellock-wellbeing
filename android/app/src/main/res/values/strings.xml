@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">REELLOCK Wellbeing</string>
+    <string name="accessibility_service_description">Monitors foreground Instagram Reels transitions to help measure and curb short-video addiction time. Does not collect keystrokes or private messages.</string>
+</resources>
+
