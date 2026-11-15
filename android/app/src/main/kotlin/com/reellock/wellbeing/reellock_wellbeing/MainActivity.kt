@@ -257,6 +257,31 @@ class MainActivity : FlutterActivity() {
                         result.success(true)
                     }
                 }
+                "hasNotificationPermission" -> {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+                            this,
+                            android.Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+                        result.success(granted)
+                    } else {
+                        result.success(true)
+                    }
+                }
+                "requestNotificationPermission" -> {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+                            this,
+                            android.Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+                        if (!granted) {
+                            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 3001)
+                        }
+                        result.success(true)
+                    } else {
+                        result.success(true)
+                    }
+                }
                 "openInstallPermissionSetting" -> {
                     try {
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -407,6 +432,8 @@ class MainActivity : FlutterActivity() {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
                 if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
                     notificationManager.notify(2001, builder.build())
+                } else {
+                    requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 3001)
                 }
             } else {
                 notificationManager.notify(2001, builder.build())

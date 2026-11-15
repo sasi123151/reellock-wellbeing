@@ -15,8 +15,8 @@ class UpdateService {
   static const String defaultManifestUrl =
       'https://github.com/sasi123151/reellock-wellbeing/releases/latest/download/update_manifest.json';
 
-  int currentVersionCode = 1;
-  String currentVersionName = '1.0.0';
+  int currentVersionCode = 3;
+  String currentVersionName = '1.0.2';
 
   final ValueNotifier<UpdateManifest?> updateNotifier = ValueNotifier<UpdateManifest?>(null);
   final ValueNotifier<double> downloadProgressNotifier = ValueNotifier<double>(0.0);

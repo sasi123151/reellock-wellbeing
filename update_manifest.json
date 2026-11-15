@@ -1,12 +1,12 @@
 {
-  "latestVersion": "1.0.1",
-  "latestVersionCode": 2,
+  "latestVersion": "1.0.2",
+  "latestVersionCode": 3,
   "apkDownloadUrl": "https://github.com/sasi123151/reellock-wellbeing/releases/latest/download/app-release.apk",
-  "directReleaseApkUrl": "https://github.com/sasi123151/reellock-wellbeing/releases/download/v1.0.1/app-release.apk",
-  "apkSha256": "9ef2902e77fe56f9c0147e00baed43083258f82e8bec92700ad505766501f803",
-  "apkSizeBytes": 177056711,
-  "releaseNotes": "v1.0.1: Production UX (simulation hidden), Instagram Explore content lock, in-place Reels overlay, and In-App Auto Updates.",
+  "directReleaseApkUrl": "https://github.com/sasi123151/reellock-wellbeing/releases/download/v1.0.2/app-release.apk",
+  "apkSha256": "bef55de538ba49e21454884e845db0e676ee28df9e8ccdfaf9d21dc3c5358f32",
+  "apkSizeBytes": 177073123,
+  "releaseNotes": "v1.0.2: Production Update System with Android push notification, persistent update banner, and in-place upgrade.",
   "mandatoryUpdate": false,
   "minimumSupportedVersion": "1.0.0",
-  "publishedAt": "2026-11-15T12:45:00Z"
+  "publishedAt": "2026-11-15T14:15:00Z"
 }
