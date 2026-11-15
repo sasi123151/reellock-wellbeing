@@ -1,6 +1,7 @@
 package com.reellock.wellbeing.reellock_wellbeing
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
 import android.util.Log
@@ -43,6 +44,7 @@ class ReelsAccessibilityService : AccessibilityService() {
         isServiceRunning = true
         overlayManager = ReelsOverlayManager(this)
         Log.i(TAG, "ReelsAccessibilityService connected and ready on Android.")
+        checkRemoteUpdateInBackground()
         WellbeingEventRepository.recordEvent(
             applicationContext,
             WellbeingEvent(
@@ -462,5 +464,98 @@ class ReelsAccessibilityService : AccessibilityService() {
             exitReelsSession("SERVICE_DESTROYED")
         }
         isServiceRunning = false
+    }
+
+    private fun checkRemoteUpdateInBackground() {
+        Thread {
+            try {
+                val prefs = getSharedPreferences("reellock_updater_bg_prefs", Context.MODE_PRIVATE)
+                val lastCheckTime = prefs.getLong("last_check_ms", 0L)
+                val now = System.currentTimeMillis()
+                // Throttle background check to once every 4 hours
+                if (now - lastCheckTime < 4 * 60 * 60 * 1000L) {
+                    return@Thread
+                }
+                prefs.edit().putLong("last_check_ms", now).apply()
+
+                val url = java.net.URL("https://raw.githubusercontent.com/sasi123151/reellock-wellbeing/main/update_manifest.json")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.connectTimeout = 8000
+                conn.readTimeout = 8000
+                conn.setRequestProperty("User-Agent", "REELLOCK-Wellbeing/1.0.1 (Android-AccessibilityService)")
+
+                if (conn.responseCode == 200) {
+                    val stream = conn.inputStream.bufferedReader()
+                    val text = stream.readText()
+                    stream.close()
+                    val json = org.json.JSONObject(text)
+                    val remoteVersionCode = json.optInt("latestVersionCode", 0)
+                    val remoteVersionName = json.optString("latestVersion", "")
+                    val releaseNotes = json.optString("releaseNotes", "New update available")
+
+                    val pInfo = packageManager.getPackageInfo(packageName, 0)
+                    val localVersionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                        pInfo.longVersionCode.toInt()
+                    } else {
+                        @Suppress("DEPRECATION")
+                        pInfo.versionCode
+                    }
+
+                    if (remoteVersionCode > localVersionCode) {
+                        postUpdateNotification(remoteVersionName, releaseNotes)
+                    }
+                }
+                conn.disconnect()
+            } catch (e: Exception) {
+                Log.d(TAG, "Background update check skipped/failed: ${e.message}")
+            }
+        }.start()
+    }
+
+    private fun postUpdateNotification(version: String, notes: String) {
+        try {
+            val channelId = "reellock_updates"
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val channel = android.app.NotificationChannel(
+                    channelId,
+                    "REELLOCK Updates",
+                    android.app.NotificationManager.IMPORTANCE_DEFAULT
+                ).apply {
+                    description = "Notifications for REELLOCK Wellbeing app updates"
+                }
+                notificationManager.createNotificationChannel(channel)
+            }
+
+            val launchIntent = Intent(applicationContext, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            } else {
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT
+            }
+            val pendingIntent = android.app.PendingIntent.getActivity(applicationContext, 2001, launchIntent, flags)
+
+            val builder = androidx.core.app.NotificationCompat.Builder(applicationContext, channelId)
+                .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                .setContentTitle("REELLOCK Update Available: v$version")
+                .setContentText(notes)
+                .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(notes))
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    notificationManager.notify(2001, builder.build())
+                }
+            } else {
+                notificationManager.notify(2001, builder.build())
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to post update notification: ${e.message}")
+        }
     }
 }

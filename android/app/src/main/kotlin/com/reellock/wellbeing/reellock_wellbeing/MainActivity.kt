@@ -327,6 +327,12 @@ class MainActivity : FlutterActivity() {
                         result.error("HASH_ERROR", e.localizedMessage, null)
                     }
                 }
+                "showUpdateNotification" -> {
+                    val version = call.argument<String>("version") ?: "New Version"
+                    val notes = call.argument<String>("notes") ?: "A new update for REELLOCK is available."
+                    showUpdateSystemNotification(version, notes)
+                    result.success(true)
+                }
                 else -> {
                     result.notImplemented()
                 }
@@ -361,5 +367,52 @@ class MainActivity : FlutterActivity() {
             }
         }
         return false
+    }
+
+    private fun showUpdateSystemNotification(version: String, notes: String) {
+        try {
+            val channelId = "reellock_updates"
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val channel = android.app.NotificationChannel(
+                    channelId,
+                    "REELLOCK Updates",
+                    android.app.NotificationManager.IMPORTANCE_DEFAULT
+                ).apply {
+                    description = "Notifications for REELLOCK Wellbeing app updates"
+                }
+                notificationManager.createNotificationChannel(channel)
+            }
+
+            val launchIntent = Intent(applicationContext, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val flags = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+            } else {
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT
+            }
+            val pendingIntent = android.app.PendingIntent.getActivity(applicationContext, 2001, launchIntent, flags)
+
+            val builder = androidx.core.app.NotificationCompat.Builder(applicationContext, channelId)
+                .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                .setContentTitle("REELLOCK Update Available: v$version")
+                .setContentText(notes)
+                .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(notes))
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                    notificationManager.notify(2001, builder.build())
+                }
+            } else {
+                notificationManager.notify(2001, builder.build())
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Failed to display update system notification: ${e.message}")
+        }
     }
 }

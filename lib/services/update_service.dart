@@ -108,6 +108,17 @@ class UpdateService {
           updateNotifier.value = manifest;
           updateStatusNotifier.value = 'Update available: v${manifest.latestVersion} (Build ${manifest.latestVersionCode})';
           await _persistManifest(manifest);
+          // Post Android system status bar notification
+          try {
+            if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+              await _channel.invokeMethod('showUpdateNotification', {
+                'version': manifest.latestVersion,
+                'notes': manifest.releaseNotes,
+              });
+            }
+          } catch (e) {
+            debugPrint('UpdateService: Error showing update system notification: $e');
+          }
           return manifest;
         } else {
           updateNotifier.value = null;
