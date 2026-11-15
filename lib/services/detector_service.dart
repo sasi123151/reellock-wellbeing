@@ -126,6 +126,16 @@ class DetectorService {
     }
   }
 
+  Future<bool> openAppDetailsSettings() async {
+    if (_simulationMode) return true;
+    try {
+      final bool? res = await _channel.invokeMethod<bool>('openAppDetailsSettings');
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<MonitoringStatus> getMonitoringStatus() async {
     if (_simulationMode) {
       final status = MonitoringStatus(

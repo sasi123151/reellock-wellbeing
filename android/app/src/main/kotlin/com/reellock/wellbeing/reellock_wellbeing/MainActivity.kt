@@ -73,6 +73,19 @@ class MainActivity : FlutterActivity() {
                     }
                 }
 
+                "openAppDetailsSettings" -> {
+                    try {
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = android.net.Uri.parse("package:$packageName")
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("INTENT_ERROR", e.localizedMessage, null)
+                    }
+                }
+
                 "isInstagramInstalled" -> {
                     val isInstalled = checkAppInstalled(UsageStatsHelper.INSTAGRAM_PACKAGE)
                     result.success(isInstalled)

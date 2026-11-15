@@ -1,12 +1,12 @@
 {
-  "latestVersion": "1.0.2",
-  "latestVersionCode": 3,
+  "latestVersion": "1.0.3",
+  "latestVersionCode": 4,
   "apkDownloadUrl": "https://github.com/sasi123151/reellock-wellbeing/releases/latest/download/app-release.apk",
-  "directReleaseApkUrl": "https://github.com/sasi123151/reellock-wellbeing/releases/download/v1.0.2/app-release.apk",
-  "apkSha256": "bef55de538ba49e21454884e845db0e676ee28df9e8ccdfaf9d21dc3c5358f32",
-  "apkSizeBytes": 177073123,
-  "releaseNotes": "v1.0.2: Production Update System with Android push notification, persistent update banner, and in-place upgrade.",
+  "directReleaseApkUrl": "https://github.com/sasi123151/reellock-wellbeing/releases/download/v1.0.3/app-release.apk",
+  "apkSha256": "354bedd4833ac16d05928e5e38814adfb37c9db6a0ca6f985f0da329bfcece36",
+  "apkSizeBytes": 178564067,
+  "releaseNotes": "v1.0.3: Android 13+ Restricted Settings guide & auto-refresh, completely removed fake analytics data (100% honest dynamic 7-day metrics), and added custom daily quota for both today and scheduled tomorrow.",
   "mandatoryUpdate": false,
   "minimumSupportedVersion": "1.0.0",
-  "publishedAt": "2026-11-15T14:15:00Z"
+  "publishedAt": "2026-11-15T14:55:00Z"
 }

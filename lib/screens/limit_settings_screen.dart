@@ -68,6 +68,142 @@ class _LimitSettingsScreenState extends State<LimitSettingsScreen> {
     }
   }
 
+  Future<void> _showCustomQuotaDialog({required bool isToday}) async {
+    final controller = TextEditingController(
+      text: isToday ? '$_sliderValue' : '$_tomorrowSliderValue',
+    );
+    String? errorText;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: isToday ? AppColors.neonPurple : AppColors.neonCyan,
+                  width: 1.5,
+                ),
+              ),
+              title: Text(
+                isToday ? 'Custom Daily Quota' : 'Custom Tomorrow\'s Quota',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isToday
+                        ? 'Enter the maximum number of Reels you wish to allow for today.'
+                        : 'Enter the maximum number of Reels to schedule for tomorrow (applies at midnight).',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Reels Quota',
+                      labelStyle: TextStyle(
+                        color: isToday ? AppColors.neonPurple : AppColors.neonCyan,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      hintText: 'e.g. 75, 150, 450',
+                      hintStyle: const TextStyle(color: AppColors.textTertiary),
+                      errorText: errorText,
+                      suffixText: 'Reels',
+                      suffixStyle: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: isToday ? AppColors.neonPurple : AppColors.neonCyan,
+                          width: 2,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.neonPink),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.neonPink, width: 2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx),
+                  child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isToday ? AppColors.neonPurple : AppColors.neonCyan,
+                    foregroundColor: isToday ? Colors.white : Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () async {
+                    final text = controller.text.trim();
+                    if (text.isEmpty) {
+                      setDialogState(() => errorText = 'Please enter a quota');
+                      return;
+                    }
+                    final val = int.tryParse(text);
+                    if (val == null || val <= 0) {
+                      setDialogState(() => errorText = 'Quota must be a positive integer (> 0)');
+                      return;
+                    }
+                    if (val > 50000) {
+                      setDialogState(() => errorText = 'Quota cannot exceed 50,000 Reels');
+                      return;
+                    }
+
+                    Navigator.pop(dialogCtx);
+
+                    if (isToday) {
+                      setState(() => _sliderValue = val);
+                      await _saveTodayLimit();
+                    } else {
+                      setState(() => _tomorrowSliderValue = val);
+                      await _saveTomorrowLimit();
+                    }
+                  },
+                  child: const Text('Save Quota', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,6 +223,12 @@ class _LimitSettingsScreenState extends State<LimitSettingsScreen> {
               _initialized = true;
             }
             final isReached = status.isLimitReached;
+
+            final double maxToday = _sliderValue > 500 ? _sliderValue.toDouble() : 500.0;
+            final double minToday = _sliderValue < 10 ? 1.0 : 10.0;
+
+            final double maxTomorrow = _tomorrowSliderValue > 500 ? _tomorrowSliderValue.toDouble() : 500.0;
+            final double minTomorrow = _tomorrowSliderValue < 10 ? 1.0 : 10.0;
 
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
@@ -212,10 +354,9 @@ class _LimitSettingsScreenState extends State<LimitSettingsScreen> {
                         ] else ...[
                           // Slider & Presets when not locked
                           Slider(
-                            value: _sliderValue.toDouble(),
-                            min: 10,
-                            max: 500,
-                            divisions: 49,
+                            value: _sliderValue.toDouble().clamp(minToday, maxToday),
+                            min: minToday,
+                            max: maxToday,
                             activeColor: AppColors.neonPurple,
                             inactiveColor: AppColors.surfaceElevated,
                             onChanged: (val) {
@@ -225,27 +366,48 @@ class _LimitSettingsScreenState extends State<LimitSettingsScreen> {
 
                           const SizedBox(height: 8),
 
-                          // Preset buttons
+                          // Preset buttons + Custom option
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
-                            children: _presetOptions.map((opt) {
-                              final isSelected = _sliderValue == opt;
-                              return ChoiceChip(
-                                label: Text('$opt'),
-                                selected: isSelected,
+                            children: [
+                              ..._presetOptions.map((opt) {
+                                final isSelected = _sliderValue == opt;
+                                return ChoiceChip(
+                                  label: Text('$opt'),
+                                  selected: isSelected,
+                                  selectedColor: AppColors.neonPurple,
+                                  backgroundColor: AppColors.surfaceElevated,
+                                  labelStyle: TextStyle(
+                                    color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                  ),
+                                  onSelected: (_) {
+                                    setState(() => _sliderValue = opt);
+                                  },
+                                );
+                              }),
+                              ChoiceChip(
+                                avatar: const Icon(Icons.edit_rounded, size: 14, color: AppColors.neonPurpleLight),
+                                label: Text(
+                                  !_presetOptions.contains(_sliderValue) ? 'Custom ($_sliderValue)' : 'Custom',
+                                ),
+                                selected: !_presetOptions.contains(_sliderValue),
                                 selectedColor: AppColors.neonPurple,
                                 backgroundColor: AppColors.surfaceElevated,
                                 labelStyle: TextStyle(
-                                  color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                                  color: !_presetOptions.contains(_sliderValue)
+                                      ? AppColors.textPrimary
+                                      : AppColors.textSecondary,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
                                 ),
                                 onSelected: (_) {
-                                  setState(() => _sliderValue = opt);
+                                  _showCustomQuotaDialog(isToday: true);
                                 },
-                              );
-                            }).toList(),
+                              ),
+                            ],
                           ),
 
                           const SizedBox(height: 18),
@@ -337,10 +499,9 @@ class _LimitSettingsScreenState extends State<LimitSettingsScreen> {
                         const SizedBox(height: 16),
 
                         Slider(
-                          value: _tomorrowSliderValue.toDouble(),
-                          min: 10,
-                          max: 500,
-                          divisions: 49,
+                          value: _tomorrowSliderValue.toDouble().clamp(minTomorrow, maxTomorrow),
+                          min: minTomorrow,
+                          max: maxTomorrow,
                           activeColor: AppColors.neonCyan,
                           inactiveColor: AppColors.surfaceElevated,
                           onChanged: (val) {
@@ -351,23 +512,46 @@ class _LimitSettingsScreenState extends State<LimitSettingsScreen> {
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: _presetOptions.map((opt) {
-                            final isSelected = _tomorrowSliderValue == opt;
-                            return ChoiceChip(
-                              label: Text('$opt'),
-                              selected: isSelected,
+                          children: [
+                            ..._presetOptions.map((opt) {
+                              final isSelected = _tomorrowSliderValue == opt;
+                              return ChoiceChip(
+                                label: Text('$opt'),
+                                selected: isSelected,
+                                selectedColor: AppColors.neonCyan,
+                                backgroundColor: AppColors.surfaceElevated,
+                                labelStyle: TextStyle(
+                                  color: isSelected ? AppColors.pureBlack : AppColors.textSecondary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                                onSelected: (_) {
+                                  setState(() => _tomorrowSliderValue = opt);
+                                },
+                              );
+                            }),
+                            ChoiceChip(
+                              avatar: const Icon(Icons.edit_rounded, size: 14, color: AppColors.neonCyan),
+                              label: Text(
+                                !_presetOptions.contains(_tomorrowSliderValue)
+                                    ? 'Custom ($_tomorrowSliderValue)'
+                                    : 'Custom',
+                              ),
+                              selected: !_presetOptions.contains(_tomorrowSliderValue),
                               selectedColor: AppColors.neonCyan,
                               backgroundColor: AppColors.surfaceElevated,
                               labelStyle: TextStyle(
-                                color: isSelected ? AppColors.pureBlack : AppColors.textSecondary,
+                                color: !_presetOptions.contains(_tomorrowSliderValue)
+                                    ? AppColors.pureBlack
+                                    : AppColors.textSecondary,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 12,
                               ),
                               onSelected: (_) {
-                                setState(() => _tomorrowSliderValue = opt);
+                                _showCustomQuotaDialog(isToday: false);
                               },
-                            );
-                          }).toList(),
+                            ),
+                          ],
                         ),
 
                         const SizedBox(height: 18),

@@ -139,12 +139,13 @@ class InstagramConnectionCard extends StatelessWidget {
             context: context,
             icon: Icons.accessibility_new_rounded,
             title: 'Android Accessibility Service',
-            subtitle: 'Detects Instagram Reels viewer & transition swipes',
+            subtitle: status.accessibilityServiceEnabled
+                ? 'Active: Real-time Reels viewer & transition detector'
+                : 'Controlled by restricted setting on Android 13+? Tap for 2-step fix',
             isGranted: status.accessibilityServiceEnabled,
             buttonText: 'Open Accessibility',
-            onTap: () async {
-              await detector.requestAccessibilityPermission();
-              onRefresh();
+            onTap: () {
+              _showRestrictedSettingsGuide(context, detector);
             },
           ),
 
@@ -274,6 +275,187 @@ class InstagramConnectionCard extends StatelessWidget {
             const Icon(Icons.verified_rounded, size: 16, color: AppColors.neonCyan),
         ],
       ),
+    );
+  }
+
+  void _showRestrictedSettingsGuide(BuildContext context, DetectorService detector) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.neonPink.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.security_rounded, color: AppColors.neonPink, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Enable Accessibility (Android 13+)',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'On Samsung One UI and Android 13/14+, downloaded APKs are initially flagged with "Controlled by restricted setting". Follow these 2 steps to grant access safely:',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+
+              // Step 1
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceElevated,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.neonPink.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 10,
+                          backgroundColor: AppColors.neonPink,
+                          child: Text('1', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Step 1: Allow Restricted Settings',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'In App Info, tap the top-right three dots (⋮) menu, then select "Allow restricted settings". Authenticate with your phone PIN or fingerprint.',
+                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.3),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await detector.openAppDetailsSettings();
+                          onRefresh();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.neonPink,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(Icons.settings_applications_rounded, size: 16),
+                        label: const Text('Open App Info (Step 1)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Step 2
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceElevated,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.neonCyan.withValues(alpha: 0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 10,
+                          backgroundColor: AppColors.neonCyan,
+                          child: Text('2', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black)),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Step 2: Turn ON REELLOCK Service',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Go to Accessibility → Installed apps → REELLOCK Wellbeing → Toggle switch ON.',
+                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.3),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await detector.requestAccessibilityPermission();
+                          onRefresh();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.neonCyan,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(Icons.accessibility_new_rounded, size: 16),
+                        label: const Text('Open Accessibility (Step 2)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    onRefresh();
+                  },
+                  child: const Text('I\'ve Completed Both Steps • Refresh Status', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

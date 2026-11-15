@@ -15,9 +15,34 @@ class MainShellScreen extends StatefulWidget {
   State<MainShellScreen> createState() => _MainShellScreenState();
 }
 
-class _MainShellScreenState extends State<MainShellScreen> {
+class _MainShellScreenState extends State<MainShellScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
   final DetectorService _detector = DetectorService();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshPermissions();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshPermissions();
+    }
+  }
+
+  Future<void> _refreshPermissions() async {
+    await _detector.getMonitoringStatus();
+    await _detector.getDailyStatus();
+  }
 
   final List<Widget> _screens = const [
     HomeDashboardScreen(),
